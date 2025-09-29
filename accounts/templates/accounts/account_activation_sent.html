@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>تم إرسال بريد التفعيل</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+        .success { color: #25D366; font-size: 24px; margin-bottom: 20px; }
+        .info { background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="success">✓</div>
+    <h2>تم إرسال بريد التفعيل</h2>
+    
+    <div class="info">
+        <p>تم إرسال بريد التفعيل إلى <strong>{{ user_email }}</strong></p>
+        <p>يرجى التحقق من بريدك الإلكتروني والنقر على رابط التفعيل.</p>
+    </div>
+    
+    <p>إذا لم تستلم البريد، يرجى:</p>
+    <ul style="text-align: left; display: inline-block;">
+        <li>التحقق من مجلد الرسائل غير المرغوب فيها (Spam)</li>
+        <li>التأكد من صحة عنوان البريد الإلكتروني</li>
+        <li>انتظار بضع دقائق</li>
+    </ul>
+    
+    <p style="margin-top: 30px;">
+        <a href="{% url 'accounts:signup' %}">العودة إلى التسجيل</a>
+    </p>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>تفعيل حسابك</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #25D366; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f9f9f9; }
+        .button { display: inline-block; background: #25D366; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>مرحباً بك في نظام الدردشة!</h1>
+        </div>
+        
+        <div class="content">
+            <p>مرحباً <strong>{{ user.email }}</strong>,</p>
+            
+            <p>شكراً لتسجيلك في نظام الدردشة. نحن سعداء بانضمامك إلينا!</p>
+            
+            <p>لتفعيل حسابك والبدء في استخدام النظام، يرجى النقر على الزر أدناه:</p>
+            
+            <p style="text-align: center;">
+                <a href="{{ protocol }}://{{ domain }}{% url 'accounts:activate' uidb64=uid token=token %}" class="button">
+                    تفعيل حسابي
+                </a>
+            </p>
+            
+            <p>إذا لم ينجح الزر، يمكنك نسخ الرابط التالي ولصقه في متصفحك:</p>
+            <p style="background: #eee; padding: 10px; border-radius: 5px; word-break: break-all;">
+                {{ protocol }}://{{ domain }}{% url 'accounts:activate' uidb64=uid token=token %}
+            </p>
+            
+            <p>هذا الرابط ساري لمدة 7 أيام.</p>
+            
+            <p>إذا لم تقم بالتسجيل في نظامنا، يرجى تجاهل هذا البريد.</p>
+        </div>
+        
+        <div class="footer">
+            <p>مع تحيات فريق الدعم الفني<br>نظام الدردشة</p>
+        </div>
+    </div>
+</body>
+</html>
