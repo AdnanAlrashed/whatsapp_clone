@@ -13,6 +13,14 @@ from .models import CustomUser
 
 from django.contrib.auth import login
 from django.shortcuts import redirect
+from django.contrib.auth import logout
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def custom_logout(request):
+    """تسجيل الخروج"""
+    logout(request)
+    return redirect('home')  # العودة للصفحة الرئيسية
 
 def signup(request):
     if request.user.is_authenticated:

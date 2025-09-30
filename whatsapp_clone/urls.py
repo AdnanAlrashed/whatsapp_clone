@@ -1,10 +1,9 @@
-from django.contrib import admin
 # whatsapp_clone/urls.py
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from . import views  # استيراد الـ views
+from . import views  # استيراد الـ views من المجلد الحالي
 
 urlpatterns = [
     path('admin/', admin.site.urls),

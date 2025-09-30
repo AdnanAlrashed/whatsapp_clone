@@ -1,6 +1,11 @@
+# chat/views.py
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 
-# Create your views here.
+@login_required
 def chat_home(request):
-    return render(request, 'chat/room.html')
-
+    """شاشة الدردشة الرئيسية"""
+    context = {
+        'room_name': 'general',  # أو يمكنك جعلها ديناميكية
+    }
+    return render(request, 'chat/room.html', context)

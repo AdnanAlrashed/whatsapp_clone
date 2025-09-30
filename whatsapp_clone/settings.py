@@ -143,3 +143,6 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'adnanalrashed7@gmail.com'  # استبدل ببريدك
 EMAIL_HOST_PASSWORD = 'tnfl vldl timi pmmv'  # كلمة مرور التطبيق
 DEFAULT_FROM_EMAIL = 'adnanalrashed7@gmail.com'  # البريد المرسل
+
+LOGIN_URL = 'home'  # الصفحة التي تذهب إليها عند الحاجة لتسجيل الدخول
+LOGOUT_REDIRECT_URL = 'home'  # الصفحة التي تذهب إليها بعد تسجيل الخروج

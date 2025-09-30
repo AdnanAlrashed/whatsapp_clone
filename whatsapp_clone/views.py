@@ -16,12 +16,14 @@ def home(request):
         user = authenticate(request, email=email, password=password)
         
         if user is not None:
-            if user.is_active:
+            if user.is_active and user.is_email_verified:
                 login(request, user)
                 messages.success(request, 'تم تسجيل الدخول بنجاح!')
                 return redirect('chat:room')
-            else:
+            elif not user.is_active:
                 messages.error(request, 'حسابك غير مفعل. يرجى تفعيل حسابك أولاً.')
+            elif not user.is_email_verified:
+                messages.error(request, 'بريدك الإلكتروني غير مفعل. يرجى تفعيله أولاً.')
         else:
             messages.error(request, 'البريد الإلكتروني أو كلمة المرور غير صحيحة.')
     
