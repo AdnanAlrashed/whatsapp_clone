@@ -11,7 +11,12 @@ from .forms import SignUpForm
 from .tokens import account_activation_token
 from .models import CustomUser
 
+from django.contrib.auth import login
+from django.shortcuts import redirect
+
 def signup(request):
+    if request.user.is_authenticated:
+        return redirect('chat:room')  # إذا كان مسجل دخول، انتقل للدردشة
     if request.method == 'POST':
         form = SignUpForm(request.POST)
         if form.is_valid():
