@@ -26,7 +26,8 @@ SECRET_KEY = 'django-insecure-a%64g-zi1csj#2jg=mif25p9)ls-$f$44y%)6#yuc!k=)3r!8&
 # SECURITY WARNING: don't run with debug tuيrned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['whatsapp-clone-45cg.onrender.com']
+CSRF_TRUSTED_ORIGINS = ['https://whatsapp-clone-45cg.onrender.com']
 # Security settings
 SECURE_SSL_REDIRECT = False  # True in production
 SESSION_COOKIE_SECURE = False  # True in production
