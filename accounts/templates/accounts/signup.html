@@ -1,64 +1,493 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar" dir="rtl">
 <head>
-    <title>Sign Up</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إنشاء حساب جديد - نظام الدردشة</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; }
-        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        button { background: #25D366; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
-        .error { color: red; font-size: 12px; }
-        .helptext { font-size: 12px; color: #666; display: block; margin-top: 5px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .header {
+            background: #25D366;
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '💬';
+            font-size: 40px;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            opacity: 0.3;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .form-container {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #25D366;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #999;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 40px;
+            color: #666;
+            font-size: 18px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            left: 15px;
+            top: 40px;
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .error::before {
+            content: '⚠';
+            font-size: 14px;
+        }
+
+        .helptext {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            display: block;
+            line-height: 1.4;
+        }
+
+        .helptext ul {
+            margin: 5px 0;
+            padding-right: 20px;
+        }
+
+        .helptext li {
+            margin-bottom: 3px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: #25D366;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #128C7E;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #25D366;
+            border: 2px solid #25D366;
+            margin-top: 15px;
+        }
+
+        .btn-secondary:hover {
+            background: #25D366;
+            color: white;
+        }
+
+        .messages {
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-error::before {
+            content: '❌';
+            font-size: 16px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-success::before {
+            content: '✅';
+            font-size: 16px;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e1e1;
+        }
+
+        .login-link a {
+            color: #25D366;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .login-link a:hover {
+            color: #128C7E;
+            text-decoration: underline;
+        }
+
+        .password-strength {
+            margin-top: 5px;
+            height: 4px;
+            background: #e1e1e1;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s ease;
+        }
+
+        .strength-weak { background: #dc3545; width: 25%; }
+        .strength-fair { background: #fd7e14; width: 50%; }
+        .strength-good { background: #ffc107; width: 75%; }
+        .strength-strong { background: #25D366; width: 100%; }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 10px;
+            }
+            
+            .form-container {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+
+        /* تأثيرات إضافية */
+        .form-group {
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <h2>Sign Up</h2>
-    <form method="post">
-        {% csrf_token %}  <!-- هذا السطر مهم -->
-        
-        {% if form.errors %}
-            <div style="color: red; margin-bottom: 15px;">
-                <p>Please correct the errors below:</p>
-                {{ form.non_field_errors }}
+    <div class="container">
+        <div class="header">
+            <h1>إنشاء حساب جديد</h1>
+            <p>انضم إلى مجتمعنا وابدأ المحادثة</p>
+        </div>
+
+        <div class="form-container">
+            <!-- عرض الرسائل -->
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
             </div>
-        {% endif %}
-        
-        <div class="form-group">
-            <label for="id_email">Email:</label>
-            {{ form.email }}
-            {% if form.email.errors %}
-                <div class="error">{{ form.email.errors }}</div>
             {% endif %}
+
+            <!-- عرض أخطاء النموذج -->
+            {% if form.errors %}
+            <div class="alert alert-error">
+                يرجى تصحيح الأخطاء أدناه
+            </div>
+            {% endif %}
+
+            <form method="post" id="signupForm">
+                {% csrf_token %}
+                
+                <!-- حقل البريد الإلكتروني -->
+                <div class="form-group">
+                    <label for="id_email">📧 البريد الإلكتروني</label>
+                    <div class="input-icon">✉️</div>
+                    <input type="email" id="id_email" name="email" 
+                           value="{{ form.email.value|default:'' }}"
+                           placeholder="أدخل بريدك الإلكتروني" required>
+                    {% if form.email.errors %}
+                        <div class="error">{{ form.email.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- حقل كلمة المرور -->
+                <div class="form-group">
+                    <label for="id_password1">🔒 كلمة المرور</label>
+                    <input type="password" id="id_password1" name="password1" 
+                           placeholder="أنشئ كلمة مرور قوية" required
+                           oninput="checkPasswordStrength(this.value)">
+                    <button type="button" class="password-toggle" onclick="togglePassword('id_password1')">
+                        👁️
+                    </button>
+                    {% if form.password1.errors %}
+                        <div class="error">{{ form.password1.errors.0 }}</div>
+                    {% endif %}
+                    {% if form.password1.help_text %}
+                        <span class="helptext">{{ form.password1.help_text }}</span>
+                    {% endif %}
+                    <div class="password-strength">
+                        <div class="strength-bar" id="passwordStrength"></div>
+                    </div>
+                </div>
+
+                <!-- حقل تأكيد كلمة المرور -->
+                <div class="form-group">
+                    <label for="id_password2">✅ تأكيد كلمة المرور</label>
+                    <input type="password" id="id_password2" name="password2" 
+                           placeholder="أعد إدخال كلمة المرور" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('id_password2')">
+                        👁️
+                    </button>
+                    {% if form.password2.errors %}
+                        <div class="error">{{ form.password2.errors.0 }}</div>
+                    {% endif %}
+                    {% if form.password2.help_text %}
+                        <span class="helptext">{{ form.password2.help_text }}</span>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <span id="btnText">إنشاء الحساب</span>
+                    <div class="loading" id="loadingSpinner"></div>
+                </button>
+            </form>
+
+            <div class="login-link">
+                <p>هل لديك حساب بالفعل؟ <a href="{% url 'home' %}">سجل الدخول هنا</a></p>
+            </div>
         </div>
-        
-        <div class="form-group">
-            <label for="id_password1">Password:</label>
-            {{ form.password1 }}
-            {% if form.password1.errors %}
-                <div class="error">{{ form.password1.errors }}</div>
-            {% endif %}
-            {% if form.password1.help_text %}
-                <span class="helptext">{{ form.password1.help_text }}</span>
-            {% endif %}
-        </div>
-        
-        <div class="form-group">
-            <label for="id_password2">Confirm Password:</label>
-            {{ form.password2 }}
-            {% if form.password2.errors %}
-                <div class="error">{{ form.password2.errors }}</div>
-            {% endif %}
-            {% if form.password2.help_text %}
-                <span class="helptext">{{ form.password2.help_text }}</span>
-            {% endif %}
-        </div>
-        
-        <button type="submit">Sign Up</button>
-    </form>
-    
-    <p style="margin-top: 20px;">
-        <a href="{% url 'admin:login' %}">Already have an account? Login</a>
-    </p>
+    </div>
+
+    <script>
+        // تبديل عرض كلمة المرور
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const toggleBtn = input.nextElementSibling;
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggleBtn.textContent = '🔒';
+            } else {
+                input.type = 'password';
+                toggleBtn.textContent = '👁️';
+            }
+        }
+
+        // فحص قوة كلمة المرور
+        function checkPasswordStrength(password) {
+            const strengthBar = document.getElementById('passwordStrength');
+            let strength = 0;
+            
+            if (password.length >= 8) strength++;
+            if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+            if (password.match(/\d/)) strength++;
+            if (password.match(/[^a-zA-Z\d]/)) strength++;
+            
+            strengthBar.className = 'strength-bar';
+            if (password.length === 0) {
+                strengthBar.style.width = '0%';
+            } else if (strength === 1) {
+                strengthBar.className += ' strength-weak';
+            } else if (strength === 2) {
+                strengthBar.className += ' strength-fair';
+            } else if (strength === 3) {
+                strengthBar.className += ' strength-good';
+            } else if (strength >= 4) {
+                strengthBar.className += ' strength-strong';
+            }
+        }
+
+        // التحقق من تطابق كلمات المرور
+        document.getElementById('id_password2').addEventListener('input', function() {
+            const password1 = document.getElementById('id_password1').value;
+            const password2 = this.value;
+            
+            if (password2 && password1 !== password2) {
+                this.style.borderColor = '#dc3545';
+            } else {
+                this.style.borderColor = password2 ? '#25D366' : '#e1e1e1';
+            }
+        });
+
+        // إظهار تحميل عند الإرسال
+        document.getElementById('signupForm').addEventListener('submit', function() {
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            btnText.textContent = 'جاري إنشاء الحساب...';
+            loadingSpinner.style.display = 'block';
+            submitBtn.disabled = true;
+        });
+
+        // تأثيرات عند التركيز
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.style.transform = 'scale(1.02)';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentElement.style.transform = 'scale(1)';
+            });
+        });
+
+        // تنظيف الرسائل بعد 5 ثوان
+        setTimeout(() => {
+            const messages = document.querySelector('.messages');
+            if (messages) {
+                messages.style.opacity = '0';
+                messages.style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    if (messages.parentNode) {
+                        messages.parentNode.removeChild(messages);
+                    }
+                }, 500);
+            }
+        }, 5000);
+    </script>
 </body>
 </html>
