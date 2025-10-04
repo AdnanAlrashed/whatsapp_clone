@@ -152,7 +152,7 @@ def activate(request, uidb64, token):
             # تسجيل الدخول
             login(request, user)
             print("✅ User logged in successfully")
-            return redirect('chat/room')  # تأكد من وجود هذا المسار
+            return redirect('chat:room')  # تأكد من وجود هذا المسار
             
         else:
             print("❌ Invalid token")

@@ -7,55 +7,48 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'chat_{self.room_name}'
 
+        # Join room group
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
 
         await self.accept()
+        print(f"✅ Chat WebSocket connected to room: {self.room_name}")
 
     async def disconnect(self, close_code):
+        # Leave room group
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
+        print(f"❌ Chat WebSocket disconnected from room: {self.room_name}")
 
     async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json['message']
-        image_url = text_data_json.get('image_url', None)
+        try:
+            text_data_json = json.loads(text_data)
+            message = text_data_json.get('message', '')
+            sender = self.scope["user"].email
 
-        # حفظ الرسالة في قاعدة البيانات
-        await self.save_message(message, image_url)
+            # Send message to room group
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'message': message,
+                    'sender': sender
+                }
+            )
 
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'message': message,
-                'image_url': image_url,
-                'sender': self.scope['user'].email
-            }
-        )
+        except Exception as e:
+            print(f"Error receiving message: {e}")
 
     async def chat_message(self, event):
         message = event['message']
-        image_url = event.get('image_url', None)
         sender = event['sender']
 
+        # Send message to WebSocket
         await self.send(text_data=json.dumps({
             'message': message,
-            'image_url': image_url,
             'sender': sender
         }))
-
-    @database_sync_to_async
-    def save_message(self, message, image_url):
-        from .models import Message, ChatRoom
-        room = ChatRoom.objects.get(name=self.room_name)
-        Message.objects.create(
-            room=room,
-            sender=self.scope['user'],
-            content=message,
-            image=image_url
-        )

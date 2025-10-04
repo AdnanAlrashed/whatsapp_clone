@@ -333,80 +333,96 @@
     </div>
 
     <script>
+        // دوال المساعدة أولاً
+        function addSystemMessage(message, type = 'info') {
+            const chatMessages = document.querySelector('#chat-messages');
+            const systemMessage = document.createElement('div');
+            systemMessage.className = 'message system-message';
+            systemMessage.style.cssText = `
+                background: ${type === 'error' ? '#f8d7da' : '#d4edda'};
+                color: ${type === 'error' ? '#721c24' : '#155724'};
+                margin: 10px auto;
+                text-align: center;
+                max-width: 80%;
+                font-style: italic;
+                border-radius: 10px;
+                padding: 10px;
+            `;
+            systemMessage.textContent = message;
+            chatMessages.appendChild(systemMessage);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
         // إعدادات WebSocket للدردشة
         const roomName = '{{ room_name }}';
         const currentUser = '{{ request.user.email }}';
+        
+        // استخدام wss:// إذا كان اتصال آمن، أو ws:// إذا كان عادي
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const chatSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+            protocol + '//' + window.location.host + '/ws/chat/' + roomName + '/'
         );
 
-        // عناصر DOM
-        const chatMessages = document.querySelector('#chat-messages');
-        const messageInput = document.querySelector('#message-input');
-        const sendButton = document.querySelector('#send-button');
-        const imageInput = document.querySelector('#image-input');
-        const startCallButton = document.querySelector('#start-call-button');
-        const endCallButton = document.querySelector('#end-call-button');
-        const localVideo = document.querySelector('#local-video');
-        const remoteVideo = document.querySelector('#remote-video');
+        const callSocket = new WebSocket(
+            protocol + '//' + window.location.host + '/ws/call/'
+        );
 
-        // WebSocket events
+        // WebSocket events للدردشة
         chatSocket.onopen = function(e) {
-            console.log('Chat WebSocket connection established');
-            addSystemMessage('تم الاتصال بالغرفة بنجاح');
+            console.log('✅ Chat WebSocket connection established');
+            addSystemMessage('تم الاتصال بالغرفة بنجاح', 'success');
         };
 
         chatSocket.onclose = function(e) {
-            console.error('Chat WebSocket connection closed');
-            addSystemMessage('تم فصل الاتصال بالغرفة');
+            console.log('❌ Chat WebSocket connection closed');
+            addSystemMessage('تم فصل الاتصال بالغرفة', 'error');
+            
+            // محاولة إعادة الاتصال بعد 5 ثواني
+            setTimeout(() => {
+                console.log('🔄 Attempting to reconnect...');
+                location.reload();
+            }, 5000);
+        };
+
+        chatSocket.onerror = function(e) {
+            console.error('❌ Chat WebSocket error:', e);
+            addSystemMessage('حدث خطأ في الاتصال', 'error');
         };
 
         chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            displayMessage(data);
+            try {
+                const data = JSON.parse(e.data);
+                displayMessage(data);
+            } catch (error) {
+                console.error('Error parsing message:', error);
+            }
         };
 
-        // إرسال الرسائل النصية
-        sendButton.onclick = function() {
-            sendMessage();
+        // WebSocket events للمكالمات
+        callSocket.onopen = function(e) {
+            console.log('✅ Call WebSocket connection established');
         };
 
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
+        callSocket.onclose = function(e) {
+            console.log('❌ Call WebSocket connection closed');
+        };
 
-        // إرسال الصور
-        imageInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    chatSocket.send(JSON.stringify({
-                        'message': 'صورة مرفوعة',
-                        'image_url': e.target.result,
-                        'sender': currentUser
-                    }));
-                };
-                reader.readAsDataURL(file);
-                imageInput.value = '';
-            }
-        });
+        callSocket.onerror = function(e) {
+            console.error('❌ Call WebSocket error:', e);
+        };
 
-        // دوال المساعدة
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (message) {
-                chatSocket.send(JSON.stringify({
-                    'message': message,
-                    'sender': currentUser
-                }));
-                messageInput.value = '';
+        callSocket.onmessage = function(e) {
+            try {
+                const data = JSON.parse(e.data);
+                console.log('📞 Call message received:', data);
+            } catch (error) {
+                console.error('Error parsing call message:', error);
             }
-        }
+        };
 
+        // باقي الدوال كما هي...
         function displayMessage(data) {
+            const chatMessages = document.querySelector('#chat-messages');
             const messageElement = document.createElement('div');
             const isOwnMessage = data.sender === currentUser;
             
@@ -430,142 +446,42 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        function addSystemMessage(message) {
-            const systemMessage = document.createElement('div');
-            systemMessage.className = 'message';
-            systemMessage.style.cssText = `
-                background: #e3f2fd;
-                margin: 10px auto;
-                text-align: center;
-                max-width: 80%;
-                font-style: italic;
-                color: #666;
-            `;
-            systemMessage.textContent = message;
-            chatMessages.appendChild(systemMessage);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // WebRTC للمكالمات (الكود السابق)
-        let localStream = null;
-        let remoteStream = null;
-        let peerConnection = null;
-        let isCallActive = false;
-        
-        const servers = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' }
-            ]
+        // إرسال الرسائل النصية
+        document.querySelector('#send-button').onclick = function() {
+            sendMessage();
         };
 
-        const callSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/call/'
-        );
-
-        callSocket.onopen = function(e) {
-            console.log('Call WebSocket connection established');
-        };
-
-        callSocket.onclose = function(e) {
-            console.error('Call WebSocket connection closed');
-        };
-
-        // باقي كود WebRTC كما هو...
-        startCallButton.onclick = async () => {
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    video: true, 
-                    audio: true
-                });
-                localVideo.srcObject = localStream;
-                
-                // إنشاء اتصال Peer
-                peerConnection = new RTCPeerConnection(servers);
-                
-                // إضافة مسارات الوسائط المحلية
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-                
-                // معالجة الوسائط الواردة
-                peerConnection.ontrack = event => {
-                    remoteStream = event.streams[0];
-                    remoteVideo.srcObject = remoteStream;
-                };
-                
-                // معالجة مرشحات ICE
-                peerConnection.onicecandidate = event => {
-                    if (event.candidate) {
-                        callSocket.send(JSON.stringify({
-                            'type': 'ice_candidate',
-                            'candidate': event.candidate,
-                            'room': roomName
-                        }));
-                    }
-                };
-                
-                // إنشاء عرض للمكالمة
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                
-                callSocket.send(JSON.stringify({
-                    'type': 'call_offer',
-                    'offer': offer,
-                    'room': roomName
-                }));
-                
-                // تحديث واجهة المستخدم
-                startCallButton.style.display = 'none';
-                endCallButton.style.display = 'inline-block';
-                isCallActive = true;
-                
-            } catch (error) {
-                console.error('Error starting call:', error);
-                alert('خطأ في بدء المكالمة: ' + error.message);
-            }
-        };
-
-        // إنهاء المكالمة
-        endCallButton.onclick = function() {
-            if (peerConnection) {
-                peerConnection.close();
-                peerConnection = null;
-            }
-            
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localStream = null;
-                localVideo.srcObject = null;
-            }
-            
-            if (remoteStream) {
-                remoteStream.getTracks().forEach(track => track.stop());
-                remoteStream = null;
-                remoteVideo.srcObject = null;
-            }
-            
-            startCallButton.style.display = 'inline-block';
-            endCallButton.style.display = 'none';
-            isCallActive = false;
-            
-            callSocket.send(JSON.stringify({
-                'type': 'end_call',
-                'room': roomName
-            }));
-        };
-
-        // تنظيف عند مغادرة الصفحة
-        window.addEventListener('beforeunload', function() {
-            if (isCallActive) {
-                endCallButton.click();
-            }
-            if (chatSocket.readyState === WebSocket.OPEN) {
-                chatSocket.close();
-            }
-            if (callSocket.readyState === WebSocket.OPEN) {
-                callSocket.close();
+        document.querySelector('#message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
             }
         });
+
+        function sendMessage() {
+            const messageInput = document.querySelector('#message-input');
+            const message = messageInput.value.trim();
+            
+            if (message && chatSocket.readyState === WebSocket.OPEN) {
+                chatSocket.send(JSON.stringify({
+                    'message': message,
+                    'sender': currentUser
+                }));
+                messageInput.value = '';
+            }
+        }
+
+        // اختبار اتصال المكالمات
+        document.querySelector('#start-call-button').onclick = function() {
+            if (callSocket.readyState === WebSocket.OPEN) {
+                callSocket.send(JSON.stringify({
+                    'type': 'test',
+                    'message': 'Testing call connection'
+                }));
+                addSystemMessage('تم إرسال طلب اختبار المكالمة', 'success');
+            } else {
+                addSystemMessage('اتصال المكالمة غير متاح', 'error');
+            }
+        };
     </script>
 </body>
 </html>

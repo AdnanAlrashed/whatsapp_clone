@@ -37,6 +37,8 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne', 
+    'channels',  # للدردشة الفورية
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -46,8 +48,16 @@ INSTALLED_APPS = [
     'accounts',
     'chat',
     'calls',
-    'channels',  # للدردشة الفورية
 ]
+
+# إعدادات Channels
+ASGI_APPLICATION = 'whatsapp_clone.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
