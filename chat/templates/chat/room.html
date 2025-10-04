@@ -332,156 +332,199 @@
         <video id="remote-video" autoplay></video>
     </div>
 
+    <div class="call-controls">
+        <button class="call-btn" id="mute-button">🔇 كتم الصوت</button>
+        <button class="call-btn" id="unmute-button" style="display:none;">🎤 إلغاء كتم الصوت</button>
+        <button class="call-btn end-call" id="hangup-button">📞 إنهاء المكالمة</button>
+    </div>
     <script>
-        // دوال المساعدة أولاً
-        function addSystemMessage(message, type = 'info') {
-            const chatMessages = document.querySelector('#chat-messages');
-            const systemMessage = document.createElement('div');
-            systemMessage.className = 'message system-message';
-            systemMessage.style.cssText = `
-                background: ${type === 'error' ? '#f8d7da' : '#d4edda'};
-                color: ${type === 'error' ? '#721c24' : '#155724'};
-                margin: 10px auto;
-                text-align: center;
-                max-width: 80%;
-                font-style: italic;
-                border-radius: 10px;
-                padding: 10px;
-            `;
-            systemMessage.textContent = message;
-            chatMessages.appendChild(systemMessage);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
+    // دوال المساعدة أولاً
+    function addSystemMessage(message, type = 'info') {
+        const chatMessages = document.querySelector('#chat-messages');
+        const systemMessage = document.createElement('div');
+        systemMessage.className = 'message system-message';
+        systemMessage.style.cssText = `
+            background: ${type === 'error' ? '#f8d7da' : '#d4edda'};
+            color: ${type === 'error' ? '#721c24' : '#155724'};
+            margin: 10px auto;
+            text-align: center;
+            max-width: 80%;
+            font-style: italic;
+            border-radius: 10px;
+            padding: 10px;
+        `;
+        systemMessage.textContent = message;
+        chatMessages.appendChild(systemMessage);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 
-        // إعدادات WebSocket للدردشة
-        const roomName = '{{ room_name }}';
-        const currentUser = '{{ request.user.email }}';
+    // متغيرات عامة
+    const roomName = '{{ room_name }}';
+    const currentUser = '{{ request.user.email }}';
+    let lastMessageId = 0;
+
+    // دالة لجلب الرسائل الجديدة
+    function pollMessages() {
+        fetch(`/chat/messages/${roomName}/?last_id=${lastMessageId}`)
+            .then(response => response.json())
+            .then(messages => {
+                if (messages.length > 0) {
+                    messages.forEach(message => {
+                        displayMessage(message);
+                        lastMessageId = Math.max(lastMessageId, message.id);
+                    });
+                }
+                // استعلام كل 2 ثانية
+                setTimeout(pollMessages, 2000);
+            })
+            .catch(error => {
+                console.error('❌ Polling error:', error);
+                // إعادة المحاولة بعد 5 ثواني في حالة الخطأ
+                setTimeout(pollMessages, 5000);
+            });
+    }
+
+    // دالة لعرض الرسالة
+    function displayMessage(data) {
+        const chatMessages = document.querySelector('#chat-messages');
+        const messageElement = document.createElement('div');
+        const isOwnMessage = data.sender === currentUser;
         
-        // استخدام wss:// إذا كان اتصال آمن، أو ws:// إذا كان عادي
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const chatSocket = new WebSocket(
-            protocol + '//' + window.location.host + '/ws/chat/' + roomName + '/'
-        );
-
-        const callSocket = new WebSocket(
-            protocol + '//' + window.location.host + '/ws/call/'
-        );
-
-        // WebSocket events للدردشة
-        chatSocket.onopen = function(e) {
-            console.log('✅ Chat WebSocket connection established');
-            addSystemMessage('تم الاتصال بالغرفة بنجاح', 'success');
-        };
-
-        chatSocket.onclose = function(e) {
-            console.log('❌ Chat WebSocket connection closed');
-            addSystemMessage('تم فصل الاتصال بالغرفة', 'error');
-            
-            // محاولة إعادة الاتصال بعد 5 ثواني
-            setTimeout(() => {
-                console.log('🔄 Attempting to reconnect...');
-                location.reload();
-            }, 5000);
-        };
-
-        chatSocket.onerror = function(e) {
-            console.error('❌ Chat WebSocket error:', e);
-            addSystemMessage('حدث خطأ في الاتصال', 'error');
-        };
-
-        chatSocket.onmessage = function(e) {
-            try {
-                const data = JSON.parse(e.data);
-                displayMessage(data);
-            } catch (error) {
-                console.error('Error parsing message:', error);
-            }
-        };
-
-        // WebSocket events للمكالمات
-        callSocket.onopen = function(e) {
-            console.log('✅ Call WebSocket connection established');
-        };
-
-        callSocket.onclose = function(e) {
-            console.log('❌ Call WebSocket connection closed');
-        };
-
-        callSocket.onerror = function(e) {
-            console.error('❌ Call WebSocket error:', e);
-        };
-
-        callSocket.onmessage = function(e) {
-            try {
-                const data = JSON.parse(e.data);
-                console.log('📞 Call message received:', data);
-            } catch (error) {
-                console.error('Error parsing call message:', error);
-            }
-        };
-
-        // باقي الدوال كما هي...
-        function displayMessage(data) {
-            const chatMessages = document.querySelector('#chat-messages');
-            const messageElement = document.createElement('div');
-            const isOwnMessage = data.sender === currentUser;
-            
-            messageElement.className = `message ${isOwnMessage ? 'own' : 'other'}`;
-            
-            let messageContent = `
-                <div class="message-sender">${data.sender}</div>
-                <div class="message-content">${data.message || ''}</div>
-            `;
-            
-            if (data.image_url) {
-                messageContent += `<img src="${data.image_url}" class="message-image" alt="صورة مرفوعة">`;
-            }
-            
-            messageContent += `
-                <div class="message-time">${new Date().toLocaleTimeString('ar-EG')}</div>
-            `;
-            
-            messageElement.innerHTML = messageContent;
-            chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+        messageElement.className = `message ${isOwnMessage ? 'own' : 'other'}`;
+        
+        let messageContent = `
+            <div class="message-sender">${data.sender}</div>
+            <div class="message-content">${data.message || ''}</div>
+        `;
+        
+        if (data.image_url) {
+            messageContent += `<img src="${data.image_url}" class="message-image" alt="صورة مرفوعة">`;
         }
+        
+        messageContent += `
+            <div class="message-time">${data.timestamp}</div>
+        `;
+        
+        messageElement.innerHTML = messageContent;
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 
-        // إرسال الرسائل النصية
-        document.querySelector('#send-button').onclick = function() {
-            sendMessage();
-        };
-
-        document.querySelector('#message-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        function sendMessage() {
-            const messageInput = document.querySelector('#message-input');
-            const message = messageInput.value.trim();
-            
-            if (message && chatSocket.readyState === WebSocket.OPEN) {
-                chatSocket.send(JSON.stringify({
-                    'message': message,
-                    'sender': currentUser
-                }));
-                messageInput.value = '';
-            }
+    // دالة إرسال الرسالة النصية
+    function sendMessage() {
+        const messageInput = document.querySelector('#message-input');
+        const message = messageInput.value.trim();
+        
+        if (message) {
+            fetch(`/chat/send/${roomName}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    'message': message
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    messageInput.value = '';
+                    // عرض الرسالة فوراً بدون الانتظار للـ polling
+                    displayMessage({
+                        id: data.message_id,
+                        sender: data.sender,
+                        message: message,
+                        timestamp: data.timestamp
+                    });
+                } else {
+                    addSystemMessage('خطأ في إرسال الرسالة: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Send message error:', error);
+                addSystemMessage('خطأ في إرسال الرسالة', 'error');
+            });
         }
+    }
 
-        // اختبار اتصال المكالمات
-        document.querySelector('#start-call-button').onclick = function() {
-            if (callSocket.readyState === WebSocket.OPEN) {
-                callSocket.send(JSON.stringify({
-                    'type': 'test',
-                    'message': 'Testing call connection'
-                }));
-                addSystemMessage('تم إرسال طلب اختبار المكالمة', 'success');
+    // دالة إرسال الصورة
+    function sendImage(file) {
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        fetch(`/chat/send-image/${roomName}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // عرض الصورة فوراً
+                displayMessage({
+                    id: data.message_id,
+                    sender: data.sender,
+                    message: '📷 صورة مرفوعة',
+                    image_url: data.image_url,
+                    timestamp: data.timestamp
+                });
             } else {
-                addSystemMessage('اتصال المكالمة غير متاح', 'error');
+                addSystemMessage('خطأ في إرسال الصورة: ' + data.error, 'error');
             }
-        };
-    </script>
+        })
+        .catch(error => {
+            console.error('❌ Send image error:', error);
+            addSystemMessage('خطأ في إرسال الصورة', 'error');
+        });
+    }
+
+    // إعدادات الأحداث
+    document.querySelector('#send-button').onclick = sendMessage;
+
+    document.querySelector('#message-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    document.querySelector('#image-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                addSystemMessage('حجم الصورة كبير جداً (الحد الأقصى 5MB)', 'error');
+                return;
+            }
+            sendImage(file);
+            e.target.value = ''; // مسح حقل الاختيار
+        }
+    });
+
+    // إخفاء زر إنهاء المكالمة (لأن WebSockets لا تعمل)
+    document.querySelector('#start-call-button').style.display = 'none';
+    document.querySelector('#end-call-button').style.display = 'none';
+
+    // بدء Polling
+    addSystemMessage('جاري تحميل الرسائل...', 'info');
+    pollMessages();
+
+    // دالة مساعدة للحصول على CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
 </body>
 </html>

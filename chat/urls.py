@@ -5,8 +5,7 @@ app_name = 'chat'
 
 urlpatterns = [
     path('', views.chat_home, name='room'),
-    # path('start/', views.start_chat, name='start'),
-    # path('join/<str:room_name>/', views.join_chat, name='join'),
-    # أضف مسارات أخرى حسب الحاجة
+    path('messages/<str:room_name>/', views.get_messages, name='get_messages'),
+    path('send/<str:room_name>/', views.send_message, name='send_message'),
+    path('send-image/<str:room_name>/', views.send_image, name='send_image'),
 ]
-    # أضف مسارات أخرى حسب الحاجة
