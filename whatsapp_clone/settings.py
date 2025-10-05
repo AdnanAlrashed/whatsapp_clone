@@ -65,7 +65,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'whatsapp_clone.wsgi.application'
 
-# Database Configuration - SIMPLIFIED
+# Database Configuration - SIMPLIFIED VERSION
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -73,13 +73,18 @@ DATABASES = {
     }
 }
 
-# Override with PostgreSQL ONLY if DATABASE_URL exists
+# Override with PostgreSQL - SIMPLE AND CLEAN
 if 'DATABASE_URL' in os.environ:
-    DATABASES['default'] = dj_database_url.config(
+    import dj_database_url
+    db_from_env = dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),
         conn_max_age=600,
         ssl_require=not DEBUG
     )
+    DATABASES['default'].update(db_from_env)
+    print(f"✅ Using PostgreSQL database: {DATABASES['default']['ENGINE']}")
+else:
+    print("ℹ️ Using SQLite database for development")
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
