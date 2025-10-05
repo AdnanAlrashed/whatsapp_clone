@@ -7,6 +7,7 @@ from . import views  # استيراد الـ views من المجلد الحال�
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('create-admin/', views.create_admin, name='create_admin'),  # أضف هذا
     path('', views.home, name='home'),  # الصفحة الرئيسية
     path('accounts/', include('accounts.urls')),
     path('chat/', include('chat.urls')),

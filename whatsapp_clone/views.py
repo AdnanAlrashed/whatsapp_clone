@@ -2,6 +2,10 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import get_user_model
+import os
 
 def home(request):
     """الصفحة الرئيسية - تسجيل الدخول أو التسجيل"""
@@ -28,3 +32,37 @@ def home(request):
             messages.error(request, 'البريد الإلكتروني أو كلمة المرور غير صحيحة.')
     
     return render(request, 'home.html')
+
+@csrf_exempt
+def create_admin(request):
+    """View طارئ لإنشاء superuser إذا فشل الإنشاء التلقائي"""
+    if request.method == 'POST':
+        try:
+            User = get_user_model()
+            
+            if not User.objects.filter(is_superuser=True).exists():
+                user = User.objects.create_superuser(
+                    email='admin@whatsapp.com',
+                    password='admin123456'
+                )
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'تم إنشاء superuser بنجاح',
+                    'email': 'admin@whatsapp.com',
+                    'password': 'admin123456'
+                })
+            else:
+                return JsonResponse({
+                    'status': 'info', 
+                    'message': 'Superuser موجود بالفعل'
+                })
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'فشل الإنشاء: {str(e)}'
+            })
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'استخدم POST request'
+    })
