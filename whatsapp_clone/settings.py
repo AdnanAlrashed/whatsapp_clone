@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 from pathlib import Path
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,18 +24,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-a%64g-zi1csj#2jg=mif25p9)ls-$f$44y%)6#yuc!k=)3r!8&'
 
-# SECURITY WARNING: don't run with debug tuيrned on in production!
+# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 # ALLOWED_HOSTS = ['whatsapp-clone-45cg.onrender.com']
 # CSRF_TRUSTED_ORIGINS = ['https://whatsapp-clone-45cg.onrender.com']
-# Security settings
-SECURE_SSL_REDIRECT = False  # True in production
-SESSION_COOKIE_SECURE = False  # True in production
-CSRF_COOKIE_SECURE = False  # True in production
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # Application definition
 
@@ -46,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',
+    # 'django.contrib.staticfiles',
     'accounts',
     'calls',
     'chat',
@@ -55,14 +50,28 @@ INSTALLED_APPS = [
 # إعدادات Channels
 ASGI_APPLICATION = 'whatsapp_clone.asgi.application'
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+# Channel layers configuration
+if DEBUG:
+    # للتطوير المحلي
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer'
+        }
     }
-}
+else:
+    # للإنتاج على Render
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379')],
+            },
+        },
+    }
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # إضافة WhiteNoise للملفات الثابتة
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -95,12 +104,24 @@ WSGI_APPLICATION = 'whatsapp_clone.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# تكوين قاعدة البيانات - استخدام PostgreSQL على Render و SQLite محلياً
+if 'DATABASE_URL' in os.environ:
+    # استخدام PostgreSQL على Render
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    # استخدام SQLite للتطوير المحلي فقط
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -125,9 +146,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ar'  # تغيير إلى العربية
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Riyadh'  # تغيير إلى توقيت الرياض
 
 USE_I18N = True
 
@@ -139,6 +160,13 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+
+# إعدادات WhiteNoise للملفات الثابتة
+# STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# إعدادات الوسائط
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
@@ -148,13 +176,55 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # إعدادات البريد الإلكتروني
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'adnanalrashed7@gmail.com'  # استبدل ببريدك
-EMAIL_HOST_PASSWORD = 'tnfl vldl timi pmmv'  # كلمة مرور التطبيق
-DEFAULT_FROM_EMAIL = 'adnanalrashed7@gmail.com'  # البريد المرسل
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = 'adnanalrashed7@gmail.com'
+    EMAIL_HOST_PASSWORD = 'tnfl vldl timi pmmv'
+    DEFAULT_FROM_EMAIL = 'adnanalrashed7@gmail.com'
 
-LOGIN_URL = 'home'  # الصفحة التي تذهب إليها عند الحاجة لتسجيل الدخول
-LOGOUT_REDIRECT_URL = 'home'  # الصفحة التي تذهب إليها بعد تسجيل الخروج
+LOGIN_URL = 'home'
+LOGOUT_REDIRECT_URL = 'home'
+
+# إعدادات الأمان للإنتاج
+if not DEBUG:
+    # إعدادات الأمان
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # إعدادات Render-specific
+    ALLOWED_HOSTS = ['whatsapp-clone-45cg.onrender.com', 'localhost', '127.0.0.1']
+    CSRF_TRUSTED_ORIGINS = ['https://whatsapp-clone-45cg.onrender.com']
+    
+    # تسجيل الدخول الآمن
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# تكوين إضافي لـ Render
+if 'RENDER' in os.environ:
+    # إعدادات Render الإضافية
+    ALLOWED_HOSTS.append(os.environ.get('RENDER_EXTERNAL_HOSTNAME', ''))
+    
+    # لوجات للتطبيقات على Render
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+            },
+        },
+        'root': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    }
