@@ -10,9 +10,54 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+# إعدادات قاعدة البيانات مع auto-migration
 import os
+import sys
 from pathlib import Path
 import dj_database_url
+
+# تأكد من تطبيق migrations تلقائياً عند التشغيل
+def apply_migrations_on_startup():
+    if 'RENDER' in os.environ and 'DATABASE_URL' in os.environ:
+        try:
+            from django.core.management import execute_from_command_line
+            print("🔄 تطبيق migrations تلقائياً على Render...")
+            execute_from_command_line(['manage.py', 'migrate', '--noinput'])
+            print("✅ تم تطبيق migrations بنجاح!")
+        except Exception as e:
+            print(f"❌ فشل تطبيق migrations: {e}")
+
+# استدعاء الدالة عند بدء التشغيل
+apply_migrations_on_startup()
+
+# إنشاء superuser تلقائياً إذا لم يكن موجوداً
+def create_superuser_on_startup():
+    if 'RENDER' in os.environ and 'DATABASE_URL' in os.environ:
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            
+            # تحقق إذا كان superuser موجوداً
+            if not User.objects.filter(is_superuser=True).exists():
+                print("🔄 إنشاء superuser تلقائياً...")
+                User.objects.create_superuser(
+                    email='admin@whatsappclone.com',
+                    password='admin123456',
+                    is_active=True,
+                    is_staff=True,
+                    is_superuser=True
+                )
+                print("✅ تم إنشاء superuser بنجاح!")
+                print("📧 البريد: admin@whatsappclone.com")
+                print("🔐 كلمة المرور: admin123456")
+            else:
+                print("✅ Superuser موجود بالفعل")
+                
+        except Exception as e:
+            print(f"❌ فشل إنشاء superuser: {e}")
+
+# استدعاء الدالة بعد تطبيق migrations
+create_superuser_on_startup()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
