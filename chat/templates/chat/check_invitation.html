@@ -1,0 +1,117 @@
+<!-- chat/templates/chat/check_invitation.html -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحقق من الدعوة - نظام الدردشة</title>
+    <style>
+        .check-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .invitation-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-right: 5px solid #25D366;
+        }
+        
+        .status-valid { color: #28a745; }
+        .status-expired { color: #dc3545; }
+        .status-used { color: #6c757d; }
+        
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-accept {
+            background: #25D366;
+            color: white;
+        }
+        
+        .btn-decline {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-home {
+            background: #6c757d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="check-container">
+        <h1>🔍 تحقق من الدعوة</h1>
+        
+        <div class="invitation-card">
+            <h2>{{ invitation.room.name }}</h2>
+            <p>{{ invitation.room.description }}</p>
+            
+            <div style="text-align: right; margin: 20px 0;">
+                <p><strong>المدعو:</strong> {{ invitation.invited_user.email }}</p>
+                <p><strong>دعاه:</strong> {{ invitation.invited_by.email }}</p>
+                <p><strong>تاريخ الدعوة:</strong> {{ invitation.created_at|date:"Y/m/d" }}</p>
+                <p><strong>تنتهي في:</strong> {{ invitation.expires_at|date:"Y/m/d" }}</p>
+            </div>
+            
+            {% if is_valid %}
+            <div class="status-valid">
+                <h3>✅ الدعوة فعالة</h3>
+                <p>يمكنك قبول أو رفض هذه الدعوة</p>
+            </div>
+            {% elif is_expired %}
+            <div class="status-expired">
+                <h3>⏰ الدعوة منتهية</h3>
+                <p>انتهت صلاحية هذه الدعوة</p>
+            </div>
+            {% elif is_accepted %}
+            <div class="status-used">
+                <h3>✅ تم قبول الدعوة</h3>
+                <p>لقد قبلت هذه الدعوة مسبقاً</p>
+            </div>
+            {% elif is_declined %}
+            <div class="status-used">
+                <h3>❌ تم رفض الدعوة</h3>
+                <p>لقد رفضت هذه الدعوة مسبقاً</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="btn-group">
+            {% if is_valid %}
+            <a href="{% url 'chat:accept_invitation' invitation.token %}" class="btn btn-accept">
+                ✅ قبول الدعوة
+            </a>
+            <a href="{% url 'chat:decline_invitation' invitation.token %}" class="btn btn-decline">
+                ❌ رفض الدعوة
+            </a>
+            {% endif %}
+            
+            <a href="{% url 'chat:home' %}" class="btn btn-home">
+                🏠 العودة للرئيسية
+            </a>
+        </div>
+    </div>
+</body>
+</html>

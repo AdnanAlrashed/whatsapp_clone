@@ -154,6 +154,12 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
         .message.own {
             background: var(--secondary-color);
             align-self: flex-end;
@@ -524,16 +530,29 @@
             </div>
             <div class="user-details">
                 <h2>مرحباً، {{ request.user.email }}</h2>
-                <div class="user-email">البريد الإلكتروني: {{ request.user.email }}</div>
+                <div class="user-email">غرفة: {{ room.name }}</div>
             </div>
         </div>
         
-        <form action="{% url 'accounts:logout' %}" method="post" style="display: inline;">
-            {% csrf_token %}
-            <button type="submit" class="logout-btn" onclick="return confirm('هل أنت متأكد من تسجيل الخروج؟')">
-                🚪 تسجيل الخروج
-            </button>
-        </form>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <!-- زر إدارة الغرفة (للمشرفين فقط) -->
+            {% if is_room_admin %}
+            <a href="{% url 'chat:manage_room' room.id %}" class="logout-btn" style="background: #17a2b8; color: white; text-decoration: none;">
+                ⚙️ إدارة الغرفة
+            </a>
+            {% endif %}
+            
+            <a href="{% url 'chat:my_invitations' %}" class="logout-btn" style="background: #ffc107; color: #000; text-decoration: none;">
+                📩 دعواتي
+            </a>
+            
+            <form action="{% url 'accounts:logout' %}" method="post" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="logout-btn" onclick="return confirm('هل أنت متأكد من تسجيل الخروج؟')">
+                    🚪 تسجيل الخروج
+                </button>
+            </form>
+        </div>
     </div>
 
     <!-- حاوية الدردشة -->
@@ -541,6 +560,14 @@
         <div class="room-title">
             <span>💬</span>
             <span>غرفة الدردشة: {{ room_name }}</span>
+            <div style="display: flex; align-items: center; gap: 8px; margin-right: 10px;">
+                <span class="online-indicator" style="display: flex; align-items: center; gap: 4px;">
+                    <span class="online-dot" style="width: 8px; height: 8px; background: #4CAF50; border-radius: 50%; animation: pulse 2s infinite;"></span>
+                    <span class="online-count" style="font-size: 14px; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px;">
+                        {{ online_count|default:1 }} متصل
+                    </span>
+                </span>
+            </div>
         </div>
         
         <div id="chat-messages">
@@ -593,8 +620,8 @@
         <button class="call-btn end-call" id="hangup-button">📞 إنهاء المكالمة</button>
     </div>
 
+    <!-- في نهاية ملف room.html قبل </body> -->
     <script>
-        // JavaScript code remains the same as in your original file
         // دوال المساعدة أولاً
         function addSystemMessage(message, type = 'info') {
             const chatMessages = document.querySelector('#chat-messages');
@@ -615,20 +642,103 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // متغيرات عامة
-        const roomName = '{{ room_name }}';
+        // متغيرات عامة - تأكد من الحصول على room_id بشكل صحيح
+        const roomId = '{{ room_id }}';  // هذا يجب أن يكون معبأ الآن
+        const roomName = '{{ room.name }}';  // استخدام اسم الغرفة للعرض
         const currentUser = '{{ request.user.email }}';
-        let lastMessageId = 0;
+        let lastMessageId = '0';
+        let chatSocket = null;
 
+        console.log('Room ID:', roomId);  // للتdebug
+
+        // إذا كان roomId فارغاً، استخدام اسم الغرفة كبديل
+        const effectiveRoomId = roomId || '{{ room.name }}';
+
+        // تهيئة WebSocket للاتصال المباشر
+        function initializeWebSocket() {
+            if (!effectiveRoomId) {
+                console.error('Cannot initialize WebSocket: Room ID is empty');
+                return;
+            }
+
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/room/${effectiveRoomId}/`;
+            
+            chatSocket = new WebSocket(wsUrl);
+
+            chatSocket.onopen = function(e) {
+                console.log('✅ WebSocket connection established');
+            };
+
+            chatSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                handleWebSocketMessage(data);
+            };
+
+            chatSocket.onclose = function(e) {
+                console.log('❌ WebSocket connection closed');
+                // إعادة الاتصال بعد 5 ثواني
+                setTimeout(initializeWebSocket, 5000);
+            };
+
+            chatSocket.onerror = function(e) {
+                console.error('❌ WebSocket error:', e);
+            };
+        }
+
+        // معالجة رسائل WebSocket
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'user_joined':
+                    addSystemMessage(`${data.display_name} انضم إلى الغرفة`, 'info');
+                    updateOnlineCounter(data.online_count);
+                    break;
+                    
+                case 'user_left':
+                    addSystemMessage(`${data.user} غادر الغرفة`, 'info');
+                    updateOnlineCounter(data.online_count);
+                    break;
+                    
+                case 'message':
+                    // عرض الرسالة الجديدة مباشرة
+                    displayMessage({
+                        id: data.message_id,
+                        sender: data.sender,
+                        sender_display: data.display_name || data.sender,
+                        message: data.message,
+                        timestamp: data.timestamp,
+                        reply_to: data.reply_to
+                    });
+                    break;
+                    
+                case 'user_typing':
+                    // يمكن إضافة مؤشر الكتابة لاحقاً
+                    break;
+                    
+                default:
+                    console.log('Unknown WebSocket message type:', data.type);
+            }
+        }
+        
         // دالة لجلب الرسائل الجديدة
         function pollMessages() {
-            fetch(`/chat/messages/${roomName}/?last_id=${lastMessageId}`)
-                .then(response => response.json())
+            if (!effectiveRoomId) {
+                console.error('Room ID is empty!');
+                return;
+            }
+            
+            fetch(`/chat/messages/${effectiveRoomId}/?last_id=${lastMessageId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(messages => {
                     if (messages.length > 0) {
                         messages.forEach(message => {
                             displayMessage(message);
-                            lastMessageId = Math.max(lastMessageId, message.id);
+                            lastMessageId = message.id;
                         });
                     }
                     // استعلام كل 2 ثانية
@@ -650,12 +760,29 @@
             messageElement.className = `message ${isOwnMessage ? 'own' : 'other'}`;
             
             let messageContent = `
-                <div class="message-sender">${data.sender}</div>
+                <div class="message-sender">${data.sender_display || data.sender}</div>
                 <div class="message-content">${data.message || ''}</div>
             `;
             
             if (data.image_url) {
                 messageContent += `<img src="${data.image_url}" class="message-image" alt="صورة مرفوعة">`;
+            }
+            
+            if (data.file_url) {
+                messageContent += `
+                    <div class="file-attachment">
+                        <a href="${data.file_url}" target="_blank">📎 ${data.file_name || 'ملف مرفق'}</a>
+                    </div>
+                `;
+            }
+            
+            if (data.reply_to) {
+                messageContent += `
+                    <div class="reply-preview">
+                        <strong>رد على ${data.reply_to.sender}:</strong>
+                        ${data.reply_to.message}
+                    </div>
+                `;
             }
             
             messageContent += `
@@ -669,11 +796,16 @@
 
         // دالة إرسال الرسالة النصية
         function sendMessage() {
+            if (!effectiveRoomId) {
+                addSystemMessage('خطأ: معرف الغرفة غير متوفر', 'error');
+                return;
+            }
+
             const messageInput = document.querySelector('#message-input');
             const message = messageInput.value.trim();
             
             if (message) {
-                fetch(`/chat/send/${roomName}/`, {
+                fetch(`/chat/send/${effectiveRoomId}/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -683,7 +815,12 @@
                         'message': message
                     })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.status === 'success') {
                         messageInput.value = '';
@@ -691,8 +828,10 @@
                         displayMessage({
                             id: data.message_id,
                             sender: data.sender,
+                            sender_display: data.sender_display || data.sender,
                             message: message,
-                            timestamp: data.timestamp
+                            timestamp: data.timestamp,
+                            reply_to: data.reply_to
                         });
                     } else {
                         addSystemMessage('خطأ في إرسال الرسالة: ' + data.error, 'error');
@@ -707,23 +846,34 @@
 
         // دالة إرسال الصورة
         function sendImage(file) {
+            if (!effectiveRoomId) {
+                addSystemMessage('خطأ: معرف الغرفة غير متوفر', 'error');
+                return;
+            }
+
             const formData = new FormData();
             formData.append('image', file);
             
-            fetch(`/chat/send-image/${roomName}/`, {
+            fetch(`/chat/send-image/${effectiveRoomId}/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': getCookie('csrftoken')
                 },
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.status === 'success') {
                     // عرض الصورة فوراً
                     displayMessage({
                         id: data.message_id,
                         sender: data.sender,
+                        sender_display: data.sender_display || data.sender,
                         message: '📷 صورة مرفوعة',
                         image_url: data.image_url,
                         timestamp: data.timestamp
@@ -739,7 +889,7 @@
         }
 
         // إعدادات الأحداث
-        document.querySelector('#send-button').onclick = sendMessage;
+        document.querySelector('#send-button').addEventListener('click', sendMessage);
 
         document.querySelector('#message-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
@@ -759,13 +909,17 @@
             }
         });
 
-        // إخفاء زر إنهاء المكالمة (لأن WebSockets لا تعمل)
+        // إخفاء أزرار المكالمة (لأن WebSockets لا تعمل)
         document.querySelector('#start-call-button').style.display = 'none';
         document.querySelector('#end-call-button').style.display = 'none';
 
-        // بدء Polling
-        addSystemMessage('جاري تحميل الرسائل...', 'info');
-        pollMessages();
+        // بدء Polling فقط إذا كان roomId متوفراً
+        if (effectiveRoomId) {
+            addSystemMessage('جاري تحميل الرسائل...', 'info');
+            pollMessages();
+        } else {
+            addSystemMessage('خطأ: لم يتم تحديد غرفة دردشة', 'error');
+        }
 
         // دالة مساعدة للحصول على CSRF token
         function getCookie(name) {
@@ -782,6 +936,137 @@
             }
             return cookieValue;
         }
+
+        // إضافة أنماط CSS للعناصر الجديدة
+        const style = document.createElement('style');
+        style.textContent = `
+            .file-attachment {
+                margin-top: 8px;
+                padding: 8px;
+                background: #f8f9fa;
+                border-radius: 8px;
+                border: 1px solid #e1e1e1;
+            }
+            
+            .file-attachment a {
+                color: #25D366;
+                text-decoration: none;
+                font-weight: 500;
+            }
+            
+            .file-attachment a:hover {
+                text-decoration: underline;
+            }
+            
+            .reply-preview {
+                margin-top: 8px;
+                padding: 8px;
+                background: #f0f2f5;
+                border-radius: 8px;
+                border-right: 3px solid #25D366;
+                font-size: 12px;
+                color: #666;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // إدارة حالة الاتصال
+        let onlineCheckInterval;
+        
+        function updateOnlineStatus(action = 'ping') {
+            // استخدام effectiveRoomId بدلاً من roomId للتأكد من التوافق
+            const targetRoomId = effectiveRoomId || roomId;
+            
+            fetch(`/chat/online-status/${targetRoomId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: `action=${action}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // تحديث عداد المتصلين في الواجهة
+                    updateOnlineCounter(data.online_count);
+                } else {
+                    console.error('Online status error:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Online status error:', error);
+                // إعادة المحاولة بعد 10 ثواني في حالة الخطأ
+                setTimeout(() => updateOnlineStatus(action), 10000);
+            });
+        }
+        
+        function updateOnlineCounter(count) {
+            // تحديث العداد في جميع الأماكن
+            const counters = document.querySelectorAll('.online-count');
+            counters.forEach(counter => {
+                counter.textContent = `${count} متصل`;
+            });
+            
+            // تحديث في قائمة الغرف إذا كانت مفتوحة (تجنب التكرار اللانهائي)
+            if (window.parent && window.parent !== window && window.parent.updateRoomOnlineCount) {
+                window.parent.updateRoomOnlineCount(effectiveRoomId || roomId, count);
+            }
+        }
+        
+        // عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // تسجيل الدخول إلى الغرفة
+            updateOnlineStatus('join');
+            
+            // تهيئة WebSocket للاتصال المباشر
+            initializeWebSocket();
+            
+            // تحديث حالة الاتصال كل 30 ثانية (للنسخ الاحتياطي)
+            onlineCheckInterval = setInterval(() => {
+                updateOnlineStatus('ping');
+            }, 30000);
+            
+            // تحديث أولي للعداد باستخدام القيمة من Django
+            // القيمة الافتراضية 1 يتم تعيينها في HTML
+            updateOnlineCounter(1); // سيتم تحديثها فوراً من الخادم
+        });
+        
+        // عند إغلاق الصفحة أو الخروج
+        window.addEventListener('beforeunload', function() {
+            // استخدام navigator.sendBeacon للخروج الموثوق
+            if (navigator.sendBeacon) {
+                const formData = new FormData();
+                formData.append('action', 'leave');
+                navigator.sendBeacon(`/chat/online-status/${effectiveRoomId || roomId}/`, formData);
+            } else {
+                // استخدام fetch مع keepalive للخلفاء
+                fetch(`/chat/online-status/${effectiveRoomId || roomId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: 'action=leave',
+                    keepalive: true
+                }).catch(() => {}); // تجاهل الأخطاء في الخروج
+            }
+            clearInterval(onlineCheckInterval);
+        });
+        
+        // إضافة دالة مساعدة لتحديث العداد من الصفحة الرئيسية
+        window.updateRoomOnlineCount = function(roomId, count) {
+            // تجنب التكرار اللانهائي - تحديث فقط إذا كان الـ roomId مطابق
+            if ((roomId === '{{ room.id }}' || roomId === effectiveRoomId) && window.parent !== window) {
+                updateOnlineCounter(count);
+            }
+        };
+
     </script>
 </body>
 </html>

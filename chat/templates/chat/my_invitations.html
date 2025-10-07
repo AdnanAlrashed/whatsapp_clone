@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دعواتي - نظام الدردشة</title>
+    <style>
+        .invitations-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        .invitation-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-right: 4px solid #25D366;
+        }
+        
+        .invitation-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn-accept {
+            background: #25D366;
+            color: white;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .btn-decline {
+            background: #dc3545;
+            color: white;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="invitations-container">
+        <h1>📩 دعواتي الواردة</h1>
+        
+        {% if invitations %}
+            {% for invitation in invitations %}
+            <div class="invitation-card">
+                <h3>{{ invitation.room.name }}</h3>
+                <p>{{ invitation.room.description }}</p>
+                <div style="color: #666; font-size: 14px;">
+                    <p>دعاك: <strong>{{ invitation.invited_by.email }}</strong></p>
+                    <p>تاريخ الدعوة: {{ invitation.created_at|date:"Y/m/d" }}</p>
+                    <p>تنتهي في: {{ invitation.expires_at|date:"Y/m/d" }}</p>
+                </div>
+                
+                <div class="invitation-actions">
+                    <a href="{% url 'chat:accept_invitation' invitation.token %}" class="btn-accept">
+                        ✅ قبول الدعوة
+                    </a>
+                    <a href="{% url 'chat:decline_invitation' invitation.token %}" class="btn-decline">
+                        ❌ رفض الدعوة
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <p>لا توجد لديك دعوات واردة حالياً</p>
+            </div>
+        {% endif %}
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="{% url 'chat:home' %}" style="color: #25D366;">← العودة إلى الغرف</a>
+        </div>
+    </div>
+</body>
+</html>

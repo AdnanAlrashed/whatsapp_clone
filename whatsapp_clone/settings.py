@@ -112,14 +112,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Email settings
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = 'adnanalrashed7@gmail.com'  # تأكد من هذا البريد
+    EMAIL_HOST_PASSWORD = 'tnfl vldl timi pmmv'   # تأكد من كلمة المرور
+    DEFAULT_FROM_EMAIL = 'adnanalrashed7@gmail.com'  # إضافة هذا
+    SERVER_EMAIL = 'adnanalrashed7@gmail.com'        # إضافة هذا
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = 'smtp.gmail.com'
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = 'adnanalrashed7@gmail.com'
-    EMAIL_HOST_PASSWORD = 'tnfl vldl timi pmmv'
-    DEFAULT_FROM_EMAIL = 'adnanalrashed7@gmail.com'
+    EMAIL_HOST_USER = 'adnanalrashed7@gmail.com'  # تأكد من هذا البريد
+    EMAIL_HOST_PASSWORD = 'tnfl vldl timi pmmv'   # تأكد من كلمة المرور
+    DEFAULT_FROM_EMAIL = 'adnanalrashed7@gmail.com'  # إضافة هذا
+    SERVER_EMAIL = 'adnanalrashed7@gmail.com'        # إضافة هذا
 
 LOGIN_URL = 'home'
 LOGOUT_REDIRECT_URL = 'home'

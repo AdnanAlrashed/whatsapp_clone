@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 0 0 10px 10px;
+        }
+        .invitation-details {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-right: 4px solid #25D366;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            margin: 10px 5px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .btn-accept {
+            background: #25D366;
+            color: white;
+        }
+        .btn-decline {
+            background: #dc3545;
+            color: white;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💬 دعوة للانضمام إلى غرفة الدردشة</h1>
+    </div>
+    
+    <div class="content">
+        <p><strong>مرحباً {{ invitation.invited_user.email }},</strong></p>
+        <p>لقد تلقيت دعوة للانضمام إلى غرفة دردشة في نظام ADALChat</p>
+        
+        <div class="invitation-details">
+            <h3 style="color: #075E54; margin-top: 0;">{{ invitation.room.name }}</h3>
+            <p><strong>نوع الغرفة:</strong> {{ invitation.room.get_room_type_display }}</p>
+            <p><strong>الوصف:</strong> {{ invitation.room.description|default:"لا يوجد وصف" }}</p>
+            <p><strong>دعاك:</strong> {{ invitation.invited_by.email }}</p>
+            <p><strong>تاريخ الدعوة:</strong> {{ invitation.created_at|date:"Y/m/d" }}</p>
+            <p><strong>تنتهي الدعوة في:</strong> {{ invitation.expires_at|date:"Y/m/d" }}</p>
+        </div>
+        
+        <div style="text-align: center; margin: 25px 0;">
+            <a href="{{ protocol }}://{{ domain }}{% url 'chat:check_invitation' invitation.token %}" 
+            class="btn btn-accept" style="background: #17a2b8;">
+                🔍 تحقق من الدعوة
+            </a>
+            
+            <a href="{{ protocol }}://{{ domain }}{% url 'chat:accept_invitation' invitation.token %}" 
+            class="btn btn-accept">
+                ✅ قبول الدعوة
+            </a>
+            
+            <a href="{{ protocol }}://{{ domain }}{% url 'chat:decline_invitation' invitation.token %}" 
+            class="btn btn-decline">
+                ❌ رفض الدعوة
+            </a>
+        </div>
+        <p style="font-size: 14px; color: #666;">
+            <strong>ملاحظة:</strong> يمكنك النقر على أحد الزرين أعلاه للرد على الدعوة. 
+            إذا لم تقم باتخاذ أي إجراء، ستنتهي الدعوة تلقائياً في التاريخ المحدد.
+        </p>
+    </div>
+    
+    <div class="footer">
+        <p>هذه الرسالة مرسلة تلقائياً من نظام ADALChat - لا ترد على هذا البريد</p>
+        <p>© 2024 ADALChat. جميع الحقوق محفوظة.</p>
+    </div>
+</body>
+</html>

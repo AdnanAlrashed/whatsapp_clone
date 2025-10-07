@@ -24,7 +24,7 @@ def custom_logout(request):
 
 def signup(request):
     if request.user.is_authenticated:
-        return redirect('chat:room')  # إذا كان مسجل دخول، انتقل للدردشة
+        return redirect('chat:home')  # إذا كان مسجل دخول، انتقل للدردشة
     if request.method == 'POST':
         form = SignUpForm(request.POST)
         if form.is_valid():
@@ -152,7 +152,7 @@ def activate(request, uidb64, token):
             # تسجيل الدخول
             login(request, user)
             print("✅ User logged in successfully")
-            return redirect('chat:room')  # تأكد من وجود هذا المسار
+            return redirect('chat:home')  # تأكد من وجود هذا المسار
             
         else:
             print("❌ Invalid token")

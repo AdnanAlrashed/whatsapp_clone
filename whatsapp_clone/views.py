@@ -10,7 +10,7 @@ import os
 def home(request):
     """الصفحة الرئيسية - تسجيل الدخول أو التسجيل"""
     if request.user.is_authenticated:
-        return redirect('chat:room')  # إذا كان مسجل دخول، انتقل للدردشة
+        return redirect('chat:home')  # إذا كان مسجل دخول، انتقل للدردشة
     
     if request.method == 'POST':
         email = request.POST.get('email')
@@ -23,7 +23,7 @@ def home(request):
             if user.is_active and user.is_email_verified:
                 login(request, user)
                 messages.success(request, 'تم تسجيل الدخول بنجاح!')
-                return redirect('chat:room')
+                return redirect('chat:home')
             elif not user.is_active:
                 messages.error(request, 'حسابك غير مفعل. يرجى تفعيل حسابك أولاً.')
             elif not user.is_email_verified:
